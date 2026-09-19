@@ -353,9 +353,9 @@ export default function Navbar() {
       if (!freighter) return;
       try {
         const connected = await freighter.isConnected();
-        if (connected) {
-          const addr = await freighter.getPublicKey();
-          if (addr) setWalletAddress(addr);
+        if (connected?.isConnected) {
+          const res = await freighter.getAddress();
+          if (res?.address) setWalletAddress(res.address);
         }
       } catch {
         // not connected, ignore
@@ -375,20 +375,22 @@ export default function Navbar() {
       }
 
       // Check if Freighter extension is installed
-      const installed = await freighter.isConnected();
-      if (!installed) {
+      const connected = await freighter.isConnected();
+      if (!connected?.isConnected) {
         setShowFreighterError(true);
         setConnecting(false);
         return;
       }
 
       // Request access (opens Freighter popup)
-      await freighter.requestAccess();
-
-      // Get public key after approval
-      const publicKey = await freighter.getPublicKey();
-      if (publicKey) {
-        setWalletAddress(publicKey);
+      const accessRes = await freighter.requestAccess();
+      if (accessRes?.address) {
+        setWalletAddress(accessRes.address);
+      } else {
+        const addrRes = await freighter.getAddress();
+        if (addrRes?.address) {
+          setWalletAddress(addrRes.address);
+        }
       }
     } catch (err: unknown) {
       const error = err as { message?: string };
