@@ -1,6 +1,19 @@
 import type { Metadata } from "next";
+import { Inter, Syne } from "next/font/google";
 import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const syne = Syne({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "DeHatch — Merkeziyetsiz Öğrenci Kuluçka Merkezi",
@@ -20,7 +33,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr">
+    <html lang="tr" className={`${inter.variable} ${syne.variable}`}>
       <body className="antialiased">
         <Navbar />
         <main style={{ paddingTop: "var(--nav-height)" }}>{children}</main>
