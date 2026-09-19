@@ -1,0 +1,94 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Syne:wght@400;500;600;700;800&display=swap");
+@import "tailwindcss";
+
+:root {
+  /* Core Colors */
+  --color-black: #0a0a0a;
+  --color-black-soft: #111111;
+  --color-black-card: #161616;
+  --color-black-border: #222222;
+  --color-black-muted: #2a2a2a;
+
+  --color-white: #fafafa;
+  --color-white-soft: #f0f0f0;
+  --color-white-muted: #a0a0a0;
+  --color-white-dim: #606060;
+
+  --color-yellow: #f5c518;
+  --color-yellow-light: #ffd740;
+  --color-yellow-dark: #e0b000;
+  --color-yellow-glow: rgba(245, 197, 24, 0.15);
+
+  /* Semantic */
+  --color-success: #22c55e;
+  --color-warning: #f59e0b;
+  --color-danger: #ef4444;
+
+  /* Typography */
+  --font-sans: "Inter", sans-serif;
+  --font-display: "Syne", sans-serif;
+
+  /* Spacing */
+  --nav-height: 72px;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+  background: var(--color-black);
+  color: var(--color-white);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: var(--color-yellow);
+  color: var(--color-black);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-black-soft);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-black-muted);
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-white-dim);
+}
+
+/* Tailwind layer utilities */
+@layer utilities {
+  .font-display {
+    font-family: var(--font-display);
+  }
+
+  .text-gradient-yellow {
+    background: linear-gradient(135deg, var(--color-yellow), var(--color-yellow-light));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glow-yellow {
+    box-shadow: 0 0 24px var(--color-yellow-glow), 0 0 48px rgba(245, 197, 24, 0.05);
+  }
+
+  .glass-dark {
+    background: rgba(22, 22, 22, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+}
