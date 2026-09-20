@@ -10,21 +10,29 @@ import {
   type StoredApplication,
 } from "@/lib/applicationStore";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+import AuthGate from "@/components/auth/AuthGate";
 
 
 export default function ApplicationHistoryPage() {
   const { t, locale } = useI18n();
+  const { user, ready } = useAuth();
   const fmtDate = (iso: string) => new Date(iso).toLocaleString(locale, { dateStyle: "medium", timeStyle: "short" });
   const fmtAmount = (v: string) => Number(v).toLocaleString(locale, { maximumFractionDigits: 7 });
   // null = not read yet (localStorage does not exist during server render)
   const [items, setItems] = useState<StoredApplication[] | null>(null);
 
-  useEffect(() => setItems(listApplications()), []);
+  // Only this account's applications (records from before accounts existed have no owner and stay visible).
+  const load = () => setItems(listApplications().filter((a) => !a.userId || a.userId === user?.id));
+  useEffect(() => {
+    if (user) load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user]);
 
   const remove = (id: string) => {
     if (!window.confirm(t("app.confirmOne", id))) return;
     removeApplication(id);
-    setItems(listApplications());
+    load();
   };
 
   const clearAll = () => {
@@ -32,6 +40,15 @@ export default function ApplicationHistoryPage() {
     clearApplications();
     setItems([]);
   };
+
+  if (!ready) return <div style={{ background: "var(--color-black)", minHeight: "100vh" }} />;
+  if (!user) {
+    return (
+      <div style={{ background: "var(--color-black)", minHeight: "100vh" }}>
+        <AuthGate kind="history" />
+      </div>
+    );
+  }
 
   return (
     <div style={{ background: "linear-gradient(180deg, var(--color-black) 0%, var(--color-black-soft) 100%)", minHeight: "100vh" }}>

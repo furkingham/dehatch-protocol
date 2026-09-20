@@ -4,6 +4,8 @@ import "./globals.css";
 import Navbar from "@/components/layout/Navbar";
 import { WalletProvider } from "@/lib/wallet";
 import { LanguageProvider } from "@/lib/i18n";
+import { AuthProvider } from "@/lib/auth";
+import AuthModalHost from "@/components/auth/AuthModal";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -46,10 +48,13 @@ export default function RootLayout({
     <html lang="en" className={`${inter.variable} ${syne.variable} ${serif.variable}`}>
       <body className="antialiased">
         <LanguageProvider>
-          <WalletProvider>
-            <Navbar />
-            <main style={{ paddingTop: "var(--nav-height)" }}>{children}</main>
-          </WalletProvider>
+          <AuthProvider>
+            <WalletProvider>
+              <Navbar />
+              <main style={{ paddingTop: "var(--nav-height)" }}>{children}</main>
+              <AuthModalHost />
+            </WalletProvider>
+          </AuthProvider>
         </LanguageProvider>
       </body>
     </html>

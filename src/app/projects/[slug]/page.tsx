@@ -20,6 +20,7 @@ import {
 import { mockProjects } from "@/lib/mockData";
 import InvestModal from "@/components/projects/InvestModal";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
 import { localizeProject } from "@/lib/i18n/projectContent";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
@@ -36,6 +37,7 @@ export default function ProjectDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
   const { t, lang, locale } = useI18n();
+  const { requireAuth } = useAuth();
   const base = mockProjects.find((p) => p.slug === slug);
   const project = base ? localizeProject(base, lang) : undefined;
   const [showInvest, setShowInvest] = useState(false);
@@ -387,7 +389,7 @@ export default function ProjectDetailPage() {
                     {t("detail.investTitle")}
                   </p>
                   <motion.button
-                    onClick={() => setShowInvest(true)}
+                    onClick={() => requireAuth(() => setShowInvest(true))}
                     className="w-full py-3.5 rounded-xl font-semibold text-base flex items-center justify-center gap-2 transition-all"
                     style={{
                       background: "var(--color-yellow)",

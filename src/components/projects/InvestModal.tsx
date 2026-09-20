@@ -6,6 +6,8 @@ import { AlertCircle, AlertTriangle, ArrowDownLeft, CheckCircle2, ExternalLink, 
 import AnchorModal from "@/components/anchor/AnchorModal";
 import { getUsdcState, type UsdcState } from "@/lib/anchor/stellar";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+import AuthGate from "@/components/auth/AuthGate";
 import {
   explorerTxUrl,
   formatUsdc,
@@ -21,6 +23,7 @@ const card = { background: "var(--color-black-muted)", border: "1px solid var(--
 
 export default function InvestModal({ project, onClose }: { project: Project; onClose: () => void }) {
   const { t, locale } = useI18n();
+  const { user } = useAuth();
   const { address, connecting, issue, connect, sign, network } = useWallet();
   const fmt = (n: number) => n.toLocaleString(locale, { maximumFractionDigits: 2 });
   const [amount, setAmount] = useState("");
@@ -60,7 +63,7 @@ export default function InvestModal({ project, onClose }: { project: Project; on
   const canContinue = validNumber && !problem && !chainMissing && !!usdc?.hasTrustline && !wrongNetwork;
 
   const onInvest = async () => {
-    if (!address) return;
+    if (!address || !user) return; // signing out in another tab must stop the investment
     setBusy(true);
     setError(null);
     try {
@@ -111,14 +114,15 @@ export default function InvestModal({ project, onClose }: { project: Project; on
         </div>
 
         <div className="p-6 space-y-5">
-          {address && wrongNetwork && (
+          {!user && <AuthGate kind="invest" compact />}
+          {user && address && wrongNetwork && (
             <div className="flex items-start gap-2 p-3 rounded-xl text-sm" style={{ background: "rgba(245,158,11,0.1)", border: "1px solid var(--color-warning)", color: "var(--color-warning)" }}>
               <AlertTriangle size={16} className="mt-0.5 shrink-0" />
               <span>{t("net.wrongBanner")}</span>
             </div>
           )}
 
-          {!address ? (
+          {!user ? null : !address ? (
             <>
               <div className="p-4 rounded-xl text-center" style={{ background: "var(--color-yellow-glow)", border: "1px solid rgba(245,197,24,0.2)" }}>
                 <Wallet size={28} className="mx-auto" style={{ color: "var(--color-yellow)", marginBottom: "8px" }} />

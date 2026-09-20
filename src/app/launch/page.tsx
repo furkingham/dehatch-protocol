@@ -24,6 +24,8 @@ import {
 import { saveApplication } from "@/lib/applicationStore";
 import Logo from "@/components/layout/Logo";
 import { useI18n } from "@/lib/i18n";
+import { useAuth } from "@/lib/auth";
+import AuthGate from "@/components/auth/AuthGate";
 import {
   CATEGORIES,
   STEP_KEYS,
@@ -379,6 +381,7 @@ function Step3({ form, groupError }: { form: Form; groupError?: string }) {
 // ── Main Form Component ───────────────────────────────────────────────────────
 export default function LaunchPage() {
   const { t } = useI18n();
+  const { user, ready, openAuth } = useAuth();
   const [step, setStep] = useState(1);
   const [submittedName, setSubmittedName] = useState<string | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -420,7 +423,11 @@ export default function LaunchPage() {
     // Defence in depth: the resolver already validated, but never trust a single gate.
     const all = launchSchema.safeParse(data);
     if (!all.success) return;
-    setSavedId(saveApplication(all.data)?.id ?? null);
+    if (!user) {
+      openAuth("login"); // signed out in the meantime (for example in another tab)
+      return;
+    }
+    setSavedId(saveApplication(all.data, user.id)?.id ?? null);
     setSubmittedName(all.data.project.projectName);
   };
 
@@ -460,6 +467,16 @@ export default function LaunchPage() {
             </Link>
           </div>
         </motion.div>
+      </div>
+    );
+  }
+
+  // Not signed in: show the gate instead of the form. The form's state is kept, so nothing is lost.
+  if (!ready) return <div style={{ background: "var(--color-black)", minHeight: "100vh" }} />;
+  if (!user) {
+    return (
+      <div style={{ background: "var(--color-black)", minHeight: "100vh" }}>
+        <AuthGate kind="apply" />
       </div>
     );
   }

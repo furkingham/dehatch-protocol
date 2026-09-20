@@ -9,6 +9,8 @@ export interface StoredApplication {
   id: string;
   submittedAt: string; // ISO timestamp
   status: "pending";
+  /** Account that sent the application. Older records (before accounts existed) have none. */
+  userId?: string;
   data: LaunchFormValues;
 }
 
@@ -27,11 +29,12 @@ export function listApplications(): StoredApplication[] {
 }
 
 /** Returns the stored record, or null if the browser refused (private mode, quota, disabled). */
-export function saveApplication(data: LaunchFormValues): StoredApplication | null {
+export function saveApplication(data: LaunchFormValues, userId?: string): StoredApplication | null {
   const record: StoredApplication = {
     id: newId(),
     submittedAt: new Date().toISOString(),
     status: "pending",
+    userId,
     data,
   };
   try {

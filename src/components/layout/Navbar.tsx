@@ -5,6 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import AnchorModal from "@/components/anchor/AnchorModal";
 import Logo from "@/components/layout/Logo";
+import UserMenu from "@/components/auth/UserMenu";
 import { getUsdcState } from "@/lib/anchor/stellar";
 import { useWallet, type WalletIssue } from "@/lib/wallet";
 import { useI18n, type Lang } from "@/lib/i18n";
@@ -267,20 +268,22 @@ export default function Navbar() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ duration: 0.4, ease: "easeOut" }}
       >
-        <div className="h-full flex items-center justify-between px-6" style={{ maxWidth: "1280px", margin: "0 auto" }}>
+        <div className="h-full grid items-center px-6" style={{ maxWidth: "1280px", margin: "0 auto", gridTemplateColumns: "1fr auto 1fr" }}>
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group" aria-label="DeHatch">
+          <Link href="/" className="flex items-center gap-2.5 group justify-self-start" aria-label="DeHatch">
             <span className="transition-transform group-hover:scale-105">
               <Logo size={38} />
             </span>
-            <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
+            <span className="hidden sm:inline text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
               De<span style={{ color: "var(--color-yellow)" }}>Hatch</span>
             </span>
           </Link>
 
-          {/* Right side */}
-          <div className="flex items-center gap-3">
-            <LanguageSwitch />
+          {/* Centre: language */}
+          <LanguageSwitch />
+
+          {/* Right side: network, account, wallet */}
+          <div className="flex items-center gap-3 justify-self-end">
 
             {/* Network Badge */}
             {wrongNetwork ? (
@@ -302,6 +305,9 @@ export default function Navbar() {
                 {t("net.testnet")}
               </div>
             )}
+
+            {/* Account (round person icon) */}
+            <UserMenu />
 
             {/* Wallet Button */}
             {address ? (
