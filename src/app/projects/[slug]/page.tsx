@@ -18,6 +18,9 @@ import {
   Info,
 } from "lucide-react";
 import { mockProjects } from "@/lib/mockData";
+import InvestModal from "@/components/projects/InvestModal";
+import { useI18n } from "@/lib/i18n";
+import { localizeProject } from "@/lib/i18n/projectContent";
 
 const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   "AI/ML": { bg: "rgba(139,92,246,0.12)", text: "#a78bfa" },
@@ -28,311 +31,13 @@ const CATEGORY_COLORS: Record<string, { bg: string; text: string }> = {
   SaaS: { bg: "rgba(245,197,24,0.10)", text: "#f5c518" },
 };
 
-// ── Investment Modal ──────────────────────────────────────────────────────────
-function InvestModal({
-  project,
-  onClose,
-}: {
-  project: (typeof mockProjects)[0];
-  onClose: () => void;
-}) {
-  const [walletConnected, setWalletConnected] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [amount, setAmount] = useState("");
-  const [step, setStep] = useState<"amount" | "confirm" | "success">("amount");
-
-  const PRESETS = [50, 100, 250, 500];
-
-  const handleConnect = async () => {
-    setConnecting(true);
-    await new Promise((r) => setTimeout(r, 1200));
-    setWalletConnected(true);
-    setConnecting(false);
-  };
-
-  const handleInvest = () => {
-    if (step === "amount") setStep("confirm");
-    else if (step === "confirm") setStep("success");
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
-      onClick={onClose}
-    >
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 300, damping: 28 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--color-black-card)",
-          border: "1px solid var(--color-black-border)",
-        }}
-      >
-        {/* Header */}
-        <div
-          className="px-6 py-5 flex items-center justify-between"
-          style={{ borderBottom: "1px solid var(--color-black-border)" }}
-        >
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-xl flex items-center justify-center text-xl"
-              style={{ background: CATEGORY_COLORS[project.category]?.bg }}
-            >
-              {project.emoji ?? "🚀"}
-            </div>
-            <div>
-              <p className="text-xs font-medium" style={{ color: "var(--color-yellow)" }}>
-                Projeye Yatırım Yap
-              </p>
-              <h2
-                className="text-lg font-bold"
-                style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
-              >
-                {project.name}
-              </h2>
-            </div>
-          </div>
-          <button
-            onClick={onClose}
-            className="p-2 rounded-lg"
-            style={{ background: "var(--color-black-muted)", color: "var(--color-white-muted)" }}
-          >
-            <X size={16} />
-          </button>
-        </div>
-
-        <div className="p-6">
-          {/* Connect wallet first if not connected */}
-          {!walletConnected ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              <div
-                className="p-4 rounded-xl text-center"
-                style={{ background: "var(--color-yellow-glow)", border: "1px solid rgba(245,197,24,0.2)" }}
-              >
-                <Wallet size={28} className="mx-auto mb-2" style={{ color: "var(--color-yellow)" }} />
-                <p className="text-sm font-semibold mb-1" style={{ color: "var(--color-white)" }}>
-                  Yatırım yapmak için cüzdanınızı bağlayın
-                </p>
-                <p className="text-xs" style={{ color: "var(--color-white-dim)" }}>
-                  Stellar ağı üzerinden USDC ile güvenli yatırım
-                </p>
-              </div>
-              <button
-                onClick={handleConnect}
-                disabled={connecting}
-                className="w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                style={{
-                  background: connecting ? "var(--color-black-muted)" : "var(--color-yellow)",
-                  color: connecting ? "var(--color-white-dim)" : "var(--color-black)",
-                }}
-              >
-                {connecting ? (
-                  <>
-                    <div
-                      className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin"
-                      style={{ borderColor: "var(--color-white-dim)", borderTopColor: "transparent" }}
-                    />
-                    Bağlanıyor...
-                  </>
-                ) : (
-                  <>
-                    <Wallet size={16} />
-                    Cüzdan Bağla
-                  </>
-                )}
-              </button>
-            </motion.div>
-          ) : step === "amount" ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              {/* Wallet connected indicator */}
-              <div
-                className="flex items-center gap-2 px-3 py-2 rounded-lg"
-                style={{ background: "rgba(34,197,94,0.08)", border: "1px solid rgba(34,197,94,0.2)" }}
-              >
-                <div className="w-2 h-2 rounded-full" style={{ background: "var(--color-success)" }} />
-                <span className="text-xs" style={{ color: "var(--color-success)" }}>
-                  GCWV...XK42 bağlı — 2,450 USDC mevcut
-                </span>
-              </div>
-
-              {/* Preset amounts */}
-              <div>
-                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-white-dim)" }}>
-                  Hızlı seçim (USDC)
-                </p>
-                <div className="grid grid-cols-4 gap-2">
-                  {PRESETS.map((p) => (
-                    <button
-                      key={p}
-                      onClick={() => setAmount(String(p))}
-                      className="py-2 rounded-lg text-sm font-semibold transition-all"
-                      style={{
-                        background: amount === String(p) ? "var(--color-yellow)" : "var(--color-black-muted)",
-                        color: amount === String(p) ? "var(--color-black)" : "var(--color-white-muted)",
-                        border: amount === String(p) ? "1px solid var(--color-yellow)" : "1px solid var(--color-black-border)",
-                      }}
-                    >
-                      {p}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Custom amount */}
-              <div>
-                <p className="text-xs font-medium mb-2" style={{ color: "var(--color-white-dim)" }}>
-                  Özel miktar (USDC)
-                </p>
-                <div className="relative">
-                  <input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl text-base outline-none pr-16"
-                    style={{
-                      background: "var(--color-black-muted)",
-                      border: "1px solid var(--color-black-border)",
-                      color: "var(--color-white)",
-                    }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-yellow)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--color-black-border)")}
-                  />
-                  <span
-                    className="absolute right-4 top-1/2 -translate-y-1/2 text-sm font-medium"
-                    style={{ color: "var(--color-white-muted)" }}
-                  >
-                    USDC
-                  </span>
-                </div>
-              </div>
-
-              {/* Milestone info */}
-              <div
-                className="p-3 rounded-xl flex gap-3"
-                style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)" }}
-              >
-                <Info size={14} className="flex-shrink-0 mt-0.5" style={{ color: "var(--color-yellow)" }} />
-                <p className="text-xs leading-relaxed" style={{ color: "var(--color-white-muted)" }}>
-                  Fonunuz milestone bazlı kontrat tarafından kilitlenir. Her aşama onaylanınca proje ekibine aktarılır.
-                </p>
-              </div>
-
-              <button
-                onClick={handleInvest}
-                disabled={!amount || parseFloat(amount) <= 0}
-                className="w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                style={{
-                  background: amount && parseFloat(amount) > 0 ? "var(--color-yellow)" : "var(--color-black-muted)",
-                  color: amount && parseFloat(amount) > 0 ? "var(--color-black)" : "var(--color-white-dim)",
-                  cursor: amount && parseFloat(amount) > 0 ? "pointer" : "not-allowed",
-                }}
-              >
-                <TrendingUp size={16} />
-                Devam Et
-              </button>
-            </motion.div>
-          ) : step === "confirm" ? (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              <div className="text-center py-2">
-                <div
-                  className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-3"
-                  style={{ background: "var(--color-yellow-glow)", border: "2px solid var(--color-yellow)" }}
-                >
-                  <Zap size={24} style={{ color: "var(--color-yellow)" }} />
-                </div>
-                <h3 className="text-lg font-bold mb-1" style={{ color: "var(--color-white)" }}>
-                  İşlemi Onayla
-                </h3>
-                <p className="text-sm" style={{ color: "var(--color-white-muted)" }}>
-                  Stellar cüzdanınızda imzalama bekleniyor
-                </p>
-              </div>
-              <div
-                className="p-4 rounded-xl space-y-3"
-                style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)" }}
-              >
-                {[
-                  ["Proje", project.name],
-                  ["Yatırım Miktarı", `${amount} USDC`],
-                  ["Ağ", "Stellar Testnet"],
-                  ["İşlem Ücreti", "~0.00001 XLM"],
-                ].map(([k, v]) => (
-                  <div key={k} className="flex justify-between text-sm">
-                    <span style={{ color: "var(--color-white-dim)" }}>{k}</span>
-                    <span className="font-semibold" style={{ color: "var(--color-white)" }}>{v}</span>
-                  </div>
-                ))}
-              </div>
-              <button
-                onClick={handleInvest}
-                className="w-full py-3.5 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all"
-                style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}
-              >
-                <Zap size={16} />
-                Stellar&apos;da İmzala ve Yatır
-              </button>
-            </motion.div>
-          ) : (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              className="text-center py-4 space-y-4"
-            >
-              <div
-                className="w-16 h-16 rounded-full flex items-center justify-center mx-auto"
-                style={{ background: "rgba(34,197,94,0.1)", border: "2px solid var(--color-success)" }}
-              >
-                <CheckCircle2 size={28} style={{ color: "var(--color-success)" }} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: "var(--color-white)" }}>
-                  Yatırım Tamamlandı! 🎉
-                </h3>
-                <p className="text-sm" style={{ color: "var(--color-white-muted)" }}>
-                  <strong>{amount} USDC</strong> başarıyla{" "}
-                  <strong>{project.name}</strong> projesine yatırıldı.
-                  Milestone kontratı fonunuzu güvende tutuyor.
-                </p>
-              </div>
-              <div
-                className="p-3 rounded-xl text-xs font-mono"
-                style={{ background: "var(--color-black-muted)", color: "var(--color-white-dim)" }}
-              >
-                TX: 0xf3a9...c812b • Stellar Testnet
-              </div>
-              <button
-                onClick={onClose}
-                className="w-full py-3 rounded-xl font-medium transition-all"
-                style={{
-                  background: "var(--color-black-muted)",
-                  color: "var(--color-white)",
-                  border: "1px solid var(--color-black-border)",
-                }}
-              >
-                Kapat
-              </button>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
-  );
-}
-
 // ── Project Detail Page ───────────────────────────────────────────────────────
 export default function ProjectDetailPage() {
   const params = useParams();
   const slug = params?.slug as string;
-  const project = mockProjects.find((p) => p.slug === slug);
+  const { t, lang, locale } = useI18n();
+  const base = mockProjects.find((p) => p.slug === slug);
+  const project = base ? localizeProject(base, lang) : undefined;
   const [showInvest, setShowInvest] = useState(false);
 
   if (!project) {
@@ -362,7 +67,7 @@ export default function ProjectDetailPage() {
             style={{ color: "var(--color-white-muted)" }}
           >
             <ArrowLeft size={15} />
-            Projelere Dön
+            {t("detail.back")}
           </Link>
           <ChevronRight size={13} style={{ color: "var(--color-white-dim)" }} />
           <span className="text-sm" style={{ color: "var(--color-white)" }}>
@@ -411,7 +116,7 @@ export default function ProjectDetailPage() {
                         className="px-2.5 py-1 rounded-full text-xs font-semibold"
                         style={{ background: "var(--color-yellow-glow)", color: "var(--color-yellow)" }}
                       >
-                        ★ Öne Çıkan
+                        ★ {t("detail.featured")}
                       </span>
                     )}
                   </div>
@@ -449,7 +154,7 @@ export default function ProjectDetailPage() {
                     className="text-base font-bold"
                     style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
                   >
-                    Proje Ekibi
+                    {t("detail.team")}
                   </h2>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -500,10 +205,10 @@ export default function ProjectDetailPage() {
                     className="text-base font-bold"
                     style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
                   >
-                    Yol Haritası (Milestones)
+                    {t("detail.roadmap")}
                   </h2>
                   <span className="text-xs" style={{ color: "var(--color-white-dim)" }}>
-                    {completedMilestones}/{project.milestones.length} tamamlandı
+                    {t("detail.done", completedMilestones, project.milestones.length)}
                   </span>
                 </div>
                 <div className="space-y-3">
@@ -538,7 +243,7 @@ export default function ProjectDetailPage() {
                               color: m.completed ? "var(--color-white)" : i === completedMilestones ? "var(--color-yellow)" : "var(--color-white-muted)",
                             }}
                           >
-                            Aşama {i + 1}: {m.title}
+                            {t("detail.stage", i + 1, m.title)}
                           </p>
                           <span
                             className="text-xs flex-shrink-0"
@@ -571,7 +276,7 @@ export default function ProjectDetailPage() {
                   className="text-base font-bold mb-3"
                   style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
                 >
-                  Nasıl Çalışır?
+                  {t("detail.how")}
                 </h2>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--color-white-muted)" }}>
                   {project.howItWorks ?? project.description}
@@ -596,7 +301,7 @@ export default function ProjectDetailPage() {
                   className="text-sm font-bold mb-2"
                   style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
                 >
-                  Proje Hakkında
+                  {t("detail.about")}
                 </h2>
                 <p className="text-sm leading-relaxed" style={{ color: "var(--color-white-muted)" }}>
                   {project.description}
@@ -618,15 +323,15 @@ export default function ProjectDetailPage() {
                   {/* Stats */}
                   <div className="space-y-2 mb-4">
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: "var(--color-white-dim)" }}>Toplanan</span>
+                      <span style={{ color: "var(--color-white-dim)" }}>{t("detail.raised")}</span>
                       <span className="font-bold" style={{ color: "var(--color-white)" }}>
-                        {project.raised.toLocaleString()} USDC
+                        {project.raised.toLocaleString(locale)} USDC
                       </span>
                     </div>
                     <div className="flex justify-between text-sm">
-                      <span style={{ color: "var(--color-white-dim)" }}>Hedef</span>
+                      <span style={{ color: "var(--color-white-dim)" }}>{t("detail.goal")}</span>
                       <span style={{ color: "var(--color-white-muted)" }}>
-                        {project.goal.toLocaleString()} USDC
+                        {project.goal.toLocaleString(locale)} USDC
                       </span>
                     </div>
 
@@ -650,10 +355,10 @@ export default function ProjectDetailPage() {
 
                     <div className="flex justify-between text-xs">
                       <span style={{ color: progress >= 80 ? "var(--color-yellow)" : "var(--color-white-dim)" }}>
-                        %{Math.round(progress)} fonlandı
+                        {t("detail.funded", Math.round(progress))}
                       </span>
                       <span style={{ color: "var(--color-white-dim)" }}>
-                        {project.backers} destekçi
+                        {t("detail.backers", project.backers)}
                       </span>
                     </div>
                   </div>
@@ -664,13 +369,13 @@ export default function ProjectDetailPage() {
                   >
                     <div className="flex items-center gap-1.5" style={{ color: "var(--color-white-dim)" }}>
                       <Clock size={14} />
-                      <span className="text-sm">Kalan süre</span>
+                      <span className="text-sm">{t("detail.timeLeft")}</span>
                     </div>
                     <span
                       className="text-sm font-bold"
                       style={{ color: project.daysLeft <= 5 ? "#f87171" : "var(--color-white)" }}
                     >
-                      {project.daysLeft} gün
+                      {t("detail.days", project.daysLeft)}
                     </span>
                   </div>
 
@@ -679,7 +384,7 @@ export default function ProjectDetailPage() {
                     className="text-xs text-center mb-3 font-medium"
                     style={{ color: "var(--color-white-muted)" }}
                   >
-                    Projeye Yatırım Yap
+                    {t("detail.investTitle")}
                   </p>
                   <motion.button
                     onClick={() => setShowInvest(true)}
@@ -693,11 +398,11 @@ export default function ProjectDetailPage() {
                     whileTap={{ scale: 0.97 }}
                   >
                     <TrendingUp size={17} />
-                    USDC ile Destekle
+                    {t("detail.support")}
                   </motion.button>
 
                   <p className="text-xs text-center mt-3" style={{ color: "var(--color-white-dim)" }}>
-                    Milestone kontratı ile güvende
+                    {t("detail.safe")}
                   </p>
                 </motion.div>
               </div>

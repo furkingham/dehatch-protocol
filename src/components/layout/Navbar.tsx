@@ -3,200 +3,81 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import AnchorModal from "@/components/anchor/AnchorModal";
+import Logo from "@/components/layout/Logo";
+import { getUsdcState } from "@/lib/anchor/stellar";
+import { useWallet, type WalletIssue } from "@/lib/wallet";
+import { useI18n, type Lang } from "@/lib/i18n";
 import {
-  Egg,
   Wallet,
   X,
   Copy,
   ExternalLink,
-  TrendingUp,
   ArrowDownRight,
   ChevronDown,
-  Menu,
   CheckCircle2,
-  Clock,
   AlertCircle,
+  AlertTriangle,
 } from "lucide-react";
 
-// ── Freighter helpers (SSR-safe) ──────────────────────────────────────────────
-async function getFreighter() {
-  if (typeof window === "undefined") return null;
-  try {
-    const mod = await import("@stellar/freighter-api");
-    return mod;
-  } catch {
-    return null;
-  }
-}
+// Demo list — real per-wallet contributions can be read with getContribution() in src/lib/soroban.ts.
+const DEMO_INVESTMENTS = [
+  { name: "AgroChain AI", amount: 500, date: "2026-09-15" },
+  { name: "EduFund DAO", amount: 250, date: "2026-09-12" },
+  { name: "PayLink Stellar", amount: 500, date: "2026-09-10" },
+];
 
-// ── IBAN Modal ────────────────────────────────────────────────────────────────
-function IBANModal({ onClose }: { onClose: () => void }) {
-  const [iban, setIban] = useState("");
-  const [step, setStep] = useState<"form" | "confirm" | "success">("form");
-  const [amount, setAmount] = useState("");
-
-  const handleSubmit = () => {
-    if (step === "form") setStep("confirm");
-    else if (step === "confirm") setStep("success");
-  };
-
+// ── Language switch ───────────────────────────────────────────────────────────
+function LanguageSwitch() {
+  const { lang, setLang, t } = useI18n();
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.88)", backdropFilter: "blur(10px)" }}
-      onClick={onClose}
+    <div
+      role="group"
+      aria-label={t("lang.switch")}
+      className="flex items-center rounded-full"
+      style={{ border: "1px solid var(--color-black-border)", padding: "2px" }}
     >
-      <motion.div
-        initial={{ scale: 0.92, opacity: 0, y: 20 }}
-        animate={{ scale: 1, opacity: 1, y: 0 }}
-        exit={{ scale: 0.92, opacity: 0, y: 20 }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--color-black-card)",
-          border: "1px solid var(--color-black-border)",
-        }}
-      >
-        <div
-          className="px-6 py-5 flex items-center justify-between"
-          style={{ borderBottom: "1px solid var(--color-black-border)" }}
+      {(["en", "tr"] as Lang[]).map((l) => (
+        <button
+          key={l}
+          type="button"
+          onClick={() => setLang(l)}
+          aria-pressed={lang === l}
+          className="rounded-full uppercase transition-colors"
+          style={{
+            padding: "4px 10px",
+            fontSize: "10px",
+            fontWeight: 600,
+            letterSpacing: "0.12em",
+            background: lang === l ? "var(--color-yellow)" : "transparent",
+            color: lang === l ? "var(--color-black)" : "var(--color-white-muted)",
+          }}
         >
-          <div>
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--color-yellow)" }}>
-              SEP-24 Anchor Simülasyonu
-            </p>
-            <h2 className="text-xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
-              Fonu Bankaya Çek
-            </h2>
-          </div>
-          <button onClick={onClose} className="p-2 rounded-lg" style={{ background: "var(--color-black-muted)", color: "var(--color-white-muted)" }}>
-            <X size={18} />
-          </button>
-        </div>
-
-        <div className="p-6">
-          {step === "form" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              <div className="flex items-center gap-3 p-4 rounded-xl" style={{ background: "var(--color-yellow-glow)", border: "1px solid rgba(245,197,24,0.2)" }}>
-                <div className="p-2 rounded-lg" style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}>
-                  <TrendingUp size={16} />
-                </div>
-                <div>
-                  <p className="text-sm font-semibold" style={{ color: "var(--color-white)" }}>Çekilebilir Bakiye</p>
-                  <p className="text-xl font-bold" style={{ color: "var(--color-yellow)" }}>1,250 USDC</p>
-                </div>
-              </div>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--color-white-muted)" }}>Çekilecek Miktar (USDC)</label>
-                  <input
-                    type="number" value={amount} onChange={(e) => setAmount(e.target.value)} placeholder="0.00"
-                    className="w-full px-4 py-3 rounded-xl text-base outline-none transition-all"
-                    style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)", color: "var(--color-white)" }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-yellow)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--color-black-border)")}
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-2" style={{ color: "var(--color-white-muted)" }}>IBAN Numaranız</label>
-                  <input
-                    type="text" value={iban} onChange={(e) => setIban(e.target.value.toUpperCase())} placeholder="TR00 0000 0000 0000 0000 0000 00"
-                    className="w-full px-4 py-3 rounded-xl text-base outline-none transition-all font-mono"
-                    style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)", color: "var(--color-white)" }}
-                    onFocus={(e) => (e.target.style.borderColor = "var(--color-yellow)")}
-                    onBlur={(e) => (e.target.style.borderColor = "var(--color-black-border)")}
-                  />
-                  <p className="text-xs mt-1.5" style={{ color: "var(--color-white-dim)" }}>USDC → TRY dönüşümü anlık kur üzerinden yapılacaktır</p>
-                </div>
-              </div>
-              {amount && iban && (
-                <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="p-3 rounded-xl" style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)" }}>
-                  <div className="flex justify-between text-sm">
-                    <span style={{ color: "var(--color-white-dim)" }}>Tahmini TRY tutarı</span>
-                    <span className="font-semibold" style={{ color: "var(--color-white)" }}>≈ {(parseFloat(amount || "0") * 34.2).toLocaleString("tr-TR")} ₺</span>
-                  </div>
-                  <div className="flex justify-between text-sm mt-1">
-                    <span style={{ color: "var(--color-white-dim)" }}>İşlem süresi</span>
-                    <span style={{ color: "var(--color-success)" }}>1-2 iş günü</span>
-                  </div>
-                </motion.div>
-              )}
-              <button
-                onClick={handleSubmit} disabled={!amount || !iban}
-                className="w-full py-3.5 rounded-xl font-semibold text-base transition-all flex items-center justify-center gap-2"
-                style={{ background: amount && iban ? "var(--color-yellow)" : "var(--color-black-muted)", color: amount && iban ? "var(--color-black)" : "var(--color-white-dim)", cursor: amount && iban ? "pointer" : "not-allowed" }}
-              >
-                <ArrowDownRight size={18} />
-                Çekimi Başlat
-              </button>
-            </motion.div>
-          )}
-
-          {step === "confirm" && (
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-5">
-              <div className="text-center py-2">
-                <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--color-yellow-glow)", border: "2px solid var(--color-yellow)" }}>
-                  <Clock size={24} style={{ color: "var(--color-yellow)" }} />
-                </div>
-                <h3 className="text-lg font-bold mb-1" style={{ color: "var(--color-white)" }}>İşlemi Onayla</h3>
-                <p className="text-sm" style={{ color: "var(--color-white-muted)" }}>Cüzdanınızda imzalama isteği bekliyor</p>
-              </div>
-              <div className="p-4 rounded-xl space-y-3" style={{ background: "var(--color-black-muted)", border: "1px solid var(--color-black-border)" }}>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "var(--color-white-dim)" }}>Miktar</span>
-                  <span className="font-semibold" style={{ color: "var(--color-white)" }}>{amount} USDC</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span style={{ color: "var(--color-white-dim)" }}>IBAN</span>
-                  <span className="font-mono text-xs" style={{ color: "var(--color-white)" }}>{iban}</span>
-                </div>
-              </div>
-              <button onClick={handleSubmit} className="w-full py-3.5 rounded-xl font-semibold text-base transition-all" style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}>
-                Stellar Cüzdanında İmzala
-              </button>
-            </motion.div>
-          )}
-
-          {step === "success" && (
-            <motion.div initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }} className="text-center py-4 space-y-4">
-              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto" style={{ background: "rgba(34,197,94,0.1)", border: "2px solid var(--color-success)" }}>
-                <CheckCircle2 size={28} style={{ color: "var(--color-success)" }} />
-              </div>
-              <div>
-                <h3 className="text-xl font-bold mb-2" style={{ color: "var(--color-white)" }}>İşlem Başlatıldı!</h3>
-                <p className="text-sm" style={{ color: "var(--color-white-muted)" }}>{amount} USDC çekim işleminiz Stellar ağında onaylandı. 1-2 iş günü içinde IBAN&apos;ınıza TRY olarak yatırılacak.</p>
-              </div>
-              <div className="p-3 rounded-xl text-xs font-mono" style={{ background: "var(--color-black-muted)", color: "var(--color-white-dim)" }}>TX: 0xf3a9...c812b</div>
-              <button onClick={onClose} className="w-full py-3 rounded-xl font-medium transition-all" style={{ background: "var(--color-black-muted)", color: "var(--color-white)", border: "1px solid var(--color-black-border)" }}>Kapat</button>
-            </motion.div>
-          )}
-        </div>
-      </motion.div>
-    </motion.div>
+          {l}
+        </button>
+      ))}
+    </div>
   );
 }
 
 // ── Wallet Modal ──────────────────────────────────────────────────────────────
 function WalletModal({ address, onClose, onDisconnect }: { address: string; onClose: () => void; onDisconnect: () => void }) {
-  const [showIBAN, setShowIBAN] = useState(false);
+  const { t, locale } = useI18n();
+  const [showRamp, setShowRamp] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [balance, setBalance] = useState<string | null>(null);
   const shortAddr = `${address.slice(0, 6)}...${address.slice(-4)}`;
 
+  useEffect(() => {
+    if (showRamp) return; // refetch after the anchor modal closes
+    getUsdcState(address).then((u) => setBalance(u.balance)).catch(() => setBalance(null));
+  }, [address, showRamp]);
+
   const copyAddress = () => {
-    navigator.clipboard.writeText(address);
+    navigator.clipboard?.writeText(address);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
-
-  const investments = [
-    { name: "AgroChain AI", amount: 500, date: "15 Eyl 2026", status: "active" },
-    { name: "EduFund DAO", amount: 250, date: "12 Eyl 2026", status: "active" },
-    { name: "PayLink Stellar", amount: 500, date: "10 Eyl 2026", status: "active" },
-  ];
 
   return (
     <>
@@ -219,48 +100,50 @@ function WalletModal({ address, onClose, onDisconnect }: { address: string; onCl
                 {address[0]}
               </div>
               <div>
-                <p className="text-sm font-semibold" style={{ color: "var(--color-white)" }}>Cüzdanım</p>
+                <p className="text-sm font-semibold" style={{ color: "var(--color-white)" }}>{t("wallet.mine")}</p>
                 <div className="flex items-center gap-1.5">
                   <span className="text-xs font-mono" style={{ color: "var(--color-white-muted)" }}>{shortAddr}</span>
-                  <button onClick={copyAddress} className="transition-colors">
+                  <button onClick={copyAddress} className="transition-colors" aria-label="Copy address">
                     {copied ? <CheckCircle2 size={12} style={{ color: "var(--color-success)" }} /> : <Copy size={12} style={{ color: "var(--color-white-dim)" }} />}
                   </button>
                 </div>
               </div>
             </div>
-            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: "var(--color-white-dim)" }}><X size={16} /></button>
+            <button onClick={onClose} className="p-1.5 rounded-lg" style={{ color: "var(--color-white-dim)" }} aria-label={t("common.close")}><X size={16} /></button>
           </div>
 
           <div className="px-5 py-4" style={{ borderBottom: "1px solid var(--color-black-border)" }}>
-            <p className="text-xs font-medium mb-1" style={{ color: "var(--color-white-dim)" }}>Toplam Bakiye</p>
+            <p className="text-xs font-medium mb-1" style={{ color: "var(--color-white-dim)" }}>{t("wallet.total")}</p>
             <p className="text-3xl font-bold" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
-              2,450 <span className="text-lg font-medium" style={{ color: "var(--color-yellow)" }}>USDC</span>
+              {balance === null ? "—" : parseFloat(balance).toLocaleString(locale, { maximumFractionDigits: 2 })}{" "}
+              <span className="text-lg font-medium" style={{ color: "var(--color-yellow)" }}>USDC</span>
             </p>
-            <p className="text-sm mt-0.5" style={{ color: "var(--color-white-dim)" }}>≈ 83,790 ₺</p>
             <button
-              onClick={() => setShowIBAN(true)}
+              onClick={() => setShowRamp(true)}
               className="w-full mt-4 py-3 rounded-xl font-semibold text-sm flex items-center justify-center gap-2 transition-all hover:opacity-90 active:scale-[0.98]"
               style={{ background: "var(--color-yellow)", color: "var(--color-black)", boxShadow: "0 4px 16px var(--color-yellow-glow)" }}
             >
               <ArrowDownRight size={16} />
-              Fonu Bankaya Çek (TRY)
+              {t("wallet.ramp")}
             </button>
           </div>
 
           <div className="px-5 py-4">
-            <p className="text-xs font-medium mb-3" style={{ color: "var(--color-white-dim)" }}>YATIRIMLARIM</p>
+            <p className="text-xs font-medium mb-3" style={{ color: "var(--color-white-dim)" }}>{t("wallet.investments")}</p>
             <div className="space-y-2">
-              {investments.map((inv) => (
+              {DEMO_INVESTMENTS.map((inv) => (
                 <div key={inv.name} className="flex items-center justify-between py-2.5 px-3 rounded-xl" style={{ background: "var(--color-black-muted)" }}>
                   <div>
                     <p className="text-sm font-medium" style={{ color: "var(--color-white)" }}>{inv.name}</p>
-                    <p className="text-xs" style={{ color: "var(--color-white-dim)" }}>{inv.date}</p>
+                    <p className="text-xs" style={{ color: "var(--color-white-dim)" }}>
+                      {new Date(inv.date).toLocaleDateString(locale, { day: "numeric", month: "short", year: "numeric" })}
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="text-sm font-semibold" style={{ color: "var(--color-white)" }}>{inv.amount} USDC</p>
                     <div className="flex items-center gap-1 justify-end">
                       <div className="w-1.5 h-1.5 rounded-full" style={{ background: "var(--color-success)" }} />
-                      <span className="text-xs" style={{ color: "var(--color-success)" }}>Aktif</span>
+                      <span className="text-xs" style={{ color: "var(--color-success)" }}>{t("wallet.active")}</span>
                     </div>
                   </div>
                 </div>
@@ -269,30 +152,42 @@ function WalletModal({ address, onClose, onDisconnect }: { address: string; onCl
           </div>
 
           <div className="px-5 py-3 flex items-center justify-between" style={{ borderTop: "1px solid var(--color-black-border)" }}>
-            <a href={`https://stellar.expert/explorer/public/account/${address}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs" style={{ color: "var(--color-white-dim)" }}>
+            <a href={`https://stellar.expert/explorer/testnet/account/${address}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 text-xs" style={{ color: "var(--color-white-dim)" }}>
               <ExternalLink size={12} />
-              Explorer&apos;da Gör
+              {t("wallet.explorer")}
             </a>
             <button onClick={onDisconnect} className="text-xs px-3 py-1.5 rounded-lg" style={{ color: "var(--color-danger)", border: "1px solid rgba(239,68,68,0.2)" }}>
-              Bağlantıyı Kes
+              {t("wallet.disconnect")}
             </button>
           </div>
         </motion.div>
       </motion.div>
 
-      <AnimatePresence>{showIBAN && <IBANModal onClose={() => setShowIBAN(false)} />}</AnimatePresence>
+      <AnimatePresence>{showRamp && <AnchorModal address={address} onClose={() => setShowRamp(false)} />}</AnimatePresence>
     </>
   );
 }
 
-// ── Freighter Error Modal ─────────────────────────────────────────────────────
-function FreighterErrorModal({ onClose }: { onClose: () => void }) {
+// ── Wallet problem dialog ─────────────────────────────────────────────────────
+function WalletIssueModal({
+  issue,
+  detail,
+  onRetry,
+  onClose,
+}: {
+  issue: WalletIssue;
+  detail: string | null;
+  onRetry: () => void;
+  onClose: () => void;
+}) {
+  const { t } = useI18n();
   return (
     <motion.div
       initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
       className="fixed inset-0 z-[100] flex items-center justify-center p-4"
       style={{ background: "rgba(0,0,0,0.85)", backdropFilter: "blur(8px)" }}
       onClick={onClose}
+      role="alertdialog"
     >
       <motion.div
         initial={{ scale: 0.92, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.92, y: 20 }}
@@ -304,41 +199,45 @@ function FreighterErrorModal({ onClose }: { onClose: () => void }) {
           <AlertCircle size={24} style={{ color: "#f87171" }} />
         </div>
         <h3 className="text-lg font-bold mb-2" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
-          Freighter Bulunamadı
+          {t(`wallet.issue.${issue}.title`)}
         </h3>
-        <p className="text-sm mb-5" style={{ color: "var(--color-white-muted)" }}>
-          Stellar cüzdanınızı bağlamak için Freighter tarayıcı uzantısını yüklemeniz gerekiyor.
+        <p className="text-sm mb-2" style={{ color: "var(--color-white-muted)" }}>
+          {t(`wallet.issue.${issue}.body`)}
         </p>
-        <a
-          href="https://www.freighter.app/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="block w-full py-3 rounded-xl font-semibold text-sm mb-3 transition-all"
-          style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}
-        >
-          Freighter&apos;ı İndir →
-        </a>
-        <button onClick={onClose} className="w-full py-2.5 rounded-xl text-sm" style={{ color: "var(--color-white-muted)", border: "1px solid var(--color-black-border)" }}>
-          Kapat
-        </button>
+        {detail && (
+          <p className="text-xs mb-4 break-words" style={{ color: "var(--color-white-dim)" }}>{detail}</p>
+        )}
+        <div className="space-y-2" style={{ marginTop: "20px" }}>
+          {issue === "not-installed" ? (
+            <a
+              href="https://www.freighter.app/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full py-3 rounded-xl font-semibold text-sm"
+              style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}
+            >
+              {t("wallet.download")} →
+            </a>
+          ) : (
+            <button onClick={onRetry} className="block w-full py-3 rounded-xl font-semibold text-sm" style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}>
+              {t("wallet.retry")}
+            </button>
+          )}
+          <button onClick={onClose} className="w-full py-2.5 rounded-xl text-sm" style={{ color: "var(--color-white-muted)", border: "1px solid var(--color-black-border)" }}>
+            {t("common.close")}
+          </button>
+        </div>
       </motion.div>
     </motion.div>
   );
 }
 
 // ── Navbar ────────────────────────────────────────────────────────────────────
-const navLinks = [
-  { label: "Projeleri Keşfet", href: "/projects" },
-  { label: "Proje Başvurusu Yap", href: "/launch" },
-];
-
 export default function Navbar() {
+  const { t } = useI18n();
   const [scrolled, setScrolled] = useState(false);
-  const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [showWallet, setShowWallet] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const [connecting, setConnecting] = useState(false);
-  const [showFreighterError, setShowFreighterError] = useState(false);
+  const { address, connecting, issue, issueDetail, network, networkName, connect, disconnect, dismissIssue } = useWallet();
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -346,69 +245,13 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Auto-check if Freighter already connected on mount
-  useEffect(() => {
-    (async () => {
-      const freighter = await getFreighter();
-      if (!freighter) return;
-      try {
-        const connected = await freighter.isConnected();
-        if (connected?.isConnected) {
-          const res = await freighter.getAddress();
-          if (res?.address) setWalletAddress(res.address);
-        }
-      } catch {
-        // not connected, ignore
-      }
-    })();
-  }, []);
-
-  const handleConnect = async () => {
-    setConnecting(true);
-    try {
-      const freighter = await getFreighter();
-
-      if (!freighter) {
-        setShowFreighterError(true);
-        setConnecting(false);
-        return;
-      }
-
-      // Check if Freighter extension is installed
-      const connected = await freighter.isConnected();
-      if (!connected?.isConnected) {
-        setShowFreighterError(true);
-        setConnecting(false);
-        return;
-      }
-
-      // Request access (opens Freighter popup)
-      const accessRes = await freighter.requestAccess();
-      if (accessRes?.address) {
-        setWalletAddress(accessRes.address);
-      } else {
-        const addrRes = await freighter.getAddress();
-        if (addrRes?.address) {
-          setWalletAddress(addrRes.address);
-        }
-      }
-    } catch (err: unknown) {
-      const error = err as { message?: string };
-      console.error("Freighter connection error:", error?.message ?? err);
-      // If user rejected — silently ignore
-    } finally {
-      setConnecting(false);
-    }
-  };
-
   const handleDisconnect = () => {
-    setWalletAddress(null);
+    disconnect();
     setShowWallet(false);
   };
 
-  const shortAddr = walletAddress
-    ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`
-    : null;
+  const wrongNetwork = !!address && network === "other";
+  const shortAddr = address ? `${address.slice(0, 6)}...${address.slice(-4)}` : null;
 
   return (
     <>
@@ -426,60 +269,64 @@ export default function Navbar() {
       >
         <div className="h-full flex items-center justify-between px-6" style={{ maxWidth: "1280px", margin: "0 auto" }}>
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2.5 group">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center transition-transform group-hover:scale-105" style={{ background: "var(--color-yellow)" }}>
-              <Egg size={16} style={{ color: "var(--color-black)" }} />
-            </div>
+          <Link href="/" className="flex items-center gap-2.5 group" aria-label="DeHatch">
+            <span className="transition-transform group-hover:scale-105">
+              <Logo size={38} />
+            </span>
             <span className="text-lg font-bold tracking-tight" style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}>
               De<span style={{ color: "var(--color-yellow)" }}>Hatch</span>
             </span>
           </Link>
 
-          {/* Desktop Nav */}
-          <div className="hidden md:flex items-center gap-2">
-            {navLinks.map((link) => (
-              <Link
-                key={link.href} href={link.href}
-                className="px-4 py-2 rounded-lg text-sm font-medium transition-all hover:bg-white/5"
-                style={{ color: "var(--color-white-muted)" }}
-              >
-                {link.label}
-              </Link>
-            ))}
-          </div>
-
           {/* Right side */}
           <div className="flex items-center gap-3">
+            <LanguageSwitch />
+
             {/* Network Badge */}
-            <div
-              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium"
-              style={{ background: "rgba(34,197,94,0.1)", border: "1px solid rgba(34,197,94,0.2)", color: "var(--color-success)" }}
-            >
-              <div className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: "var(--color-success)" }} />
-              Stellar Testnet
-            </div>
+            {wrongNetwork ? (
+              <div
+                role="status"
+                title={t("net.wrongHint", networkName ?? "?")}
+                className="hidden sm:flex items-center gap-2 rounded-full uppercase"
+                style={{ padding: "5px 12px", border: "1px solid var(--color-warning)", color: "var(--color-warning)", fontSize: "10px", fontWeight: 600, letterSpacing: "0.14em" }}
+              >
+                <AlertTriangle size={11} />
+                {t("net.wrong")}
+              </div>
+            ) : (
+              <div
+                className="hidden sm:flex items-center gap-2 rounded-full uppercase"
+                style={{ padding: "5px 12px", border: "1px solid var(--color-black-border)", color: "var(--color-white-muted)", fontSize: "10px", fontWeight: 500, letterSpacing: "0.14em" }}
+              >
+                <div className="w-1 h-1 rounded-full" style={{ background: "var(--color-success)" }} />
+                {t("net.testnet")}
+              </div>
+            )}
 
             {/* Wallet Button */}
-            {walletAddress ? (
+            {address ? (
               <button
                 onClick={() => setShowWallet(true)}
-                className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold transition-all hover:opacity-90 active:scale-[0.97]"
-                style={{ background: "var(--color-black-card)", border: "1px solid var(--color-black-border)", color: "var(--color-white)" }}
+                className="flex items-center gap-2 rounded-full text-[13px] font-medium transition-all hover:bg-[var(--color-yellow-glow)] active:scale-[0.97]"
+                style={{ padding: "6px 16px 6px 8px", border: "1px solid rgba(245,197,24,0.4)", color: "var(--color-white)" }}
               >
                 <div className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold" style={{ background: "var(--color-yellow)", color: "var(--color-black)" }}>
-                  {walletAddress[0]}
+                  {address[0]}
                 </div>
                 {shortAddr}
                 <ChevronDown size={14} style={{ color: "var(--color-white-dim)" }} />
               </button>
             ) : (
               <motion.button
-                onClick={handleConnect}
+                onClick={() => void connect()}
                 disabled={connecting}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl text-sm font-semibold transition-all"
+                className="flex items-center gap-2 rounded-full text-[13px] font-semibold transition-all"
                 style={{
-                  background: connecting ? "var(--color-black-muted)" : "var(--color-yellow)",
+                  padding: "10px 24px",
+                  background: connecting ? "var(--color-black-muted)" : "linear-gradient(180deg, var(--color-yellow-light), var(--color-yellow))",
                   color: connecting ? "var(--color-white-muted)" : "var(--color-black)",
+                  letterSpacing: "0.02em",
+                  boxShadow: connecting ? "none" : "0 0 0 1px rgba(245,197,24,0.55), 0 8px 24px -8px rgba(245,197,24,0.45)",
                   cursor: connecting ? "wait" : "pointer",
                 }}
                 whileHover={connecting ? {} : { scale: 1.02 }}
@@ -488,51 +335,37 @@ export default function Navbar() {
                 {connecting ? (
                   <>
                     <div className="w-4 h-4 rounded-full border-2 border-t-transparent animate-spin" style={{ borderColor: "var(--color-white-muted)", borderTopColor: "transparent" }} />
-                    Bağlanıyor...
+                    {t("wallet.connecting")}
                   </>
                 ) : (
                   <>
-                    <Wallet size={15} />
-                    Cüzdan Bağla
+                    <Wallet size={14} strokeWidth={1.75} />
+                    {t("wallet.connect")}
                   </>
                 )}
               </motion.button>
             )}
 
-            {/* Mobile Menu */}
-            <button className="md:hidden p-2 rounded-lg" onClick={() => setMobileOpen(!mobileOpen)} style={{ color: "var(--color-white-muted)" }}>
-              {mobileOpen ? <X size={20} /> : <Menu size={20} />}
-            </button>
           </div>
         </div>
 
-        {/* Mobile Dropdown */}
-        <AnimatePresence>
-          {mobileOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: "auto" }} exit={{ opacity: 0, height: 0 }}
-              className="md:hidden overflow-hidden"
-              style={{ background: "var(--color-black-card)", borderTop: "1px solid var(--color-black-border)" }}
-            >
-              <div className="px-6 py-4 space-y-1">
-                {navLinks.map((link) => (
-                  <Link key={link.href} href={link.href} onClick={() => setMobileOpen(false)} className="block px-4 py-3 rounded-xl text-sm font-medium" style={{ color: "var(--color-white-muted)" }}>
-                    {link.label}
-                  </Link>
-                ))}
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </motion.nav>
 
       {/* Modals */}
       <AnimatePresence>
-        {showWallet && walletAddress && (
-          <WalletModal address={walletAddress} onClose={() => setShowWallet(false)} onDisconnect={handleDisconnect} />
+        {showWallet && address && (
+          <WalletModal address={address} onClose={() => setShowWallet(false)} onDisconnect={handleDisconnect} />
         )}
-        {showFreighterError && (
-          <FreighterErrorModal onClose={() => setShowFreighterError(false)} />
+        {issue && (
+          <WalletIssueModal
+            issue={issue}
+            detail={issueDetail}
+            onClose={dismissIssue}
+            onRetry={() => {
+              dismissIssue();
+              void connect();
+            }}
+          />
         )}
       </AnimatePresence>
     </>

@@ -31,10 +31,13 @@
   --nav-height: 72px;
 }
 
-* {
-  box-sizing: border-box;
-  padding: 0;
-  margin: 0;
+/* Layered so Tailwind utilities (p-*, m-*, space-*) can override it */
+@layer base {
+  * {
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+  }
 }
 
 html,
@@ -85,9 +88,81 @@ body {
     box-shadow: 0 0 24px var(--color-yellow-glow), 0 0 48px rgba(245, 197, 24, 0.05);
   }
 
+  .font-serif-display {
+    font-family: var(--font-serif), Georgia, "Times New Roman", serif;
+  }
+
+  /* Premium card: no permanent border, gold glow only on hover */
+  .card-lux {
+    background: rgb(20, 20, 20);
+    border: 1px solid transparent;
+    border-radius: 24px;
+    transition: border-color 0.35s ease, box-shadow 0.35s ease, transform 0.35s ease;
+  }
+  .card-lux:hover {
+    border-color: rgba(245, 197, 24, 0.35);
+    box-shadow: 0 0 0 1px rgba(245, 197, 24, 0.08), 0 20px 56px -20px rgba(245, 197, 24, 0.22);
+  }
+
+  /* Subtle text link with arrow that nudges on hover */
+  .link-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--color-white-muted);
+    font-size: 13px;
+    letter-spacing: 0.02em;
+    transition: color 0.25s ease;
+  }
+  .link-arrow svg {
+    transition: transform 0.25s ease;
+  }
+  .link-arrow:hover,
+  .group:hover .link-arrow {
+    color: var(--color-yellow);
+  }
+  .link-arrow:hover svg,
+  .group:hover .link-arrow svg {
+    transform: translateX(3px);
+  }
+
   .glass-dark {
     background: rgba(22, 22, 22, 0.8);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
   }
+}
+
+/* Card padding */
+.card-lux {
+  padding: 36px;
+}
+
+/* Form fields (launch application) */
+.field-input {
+  width: 100%;
+  background: var(--color-black-muted);
+  border: 1px solid var(--color-black-border);
+  color: var(--color-white);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s ease;
+}
+textarea.field-input {
+  resize: vertical;
+  line-height: 1.6;
+}
+.field-input:focus {
+  border-color: var(--color-yellow);
+}
+.field-input[aria-invalid="true"] {
+  border-color: #f87171;
+}
+.field-error {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #f87171;
 }

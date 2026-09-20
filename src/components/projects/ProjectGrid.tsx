@@ -6,32 +6,21 @@ import { Search, SlidersHorizontal, X } from "lucide-react";
 
 import { Project } from "@/types";
 import ProjectCard from "./ProjectCard";
+import { useI18n } from "@/lib/i18n";
 
 type SortOption = "trending" | "newest" | "ending" | "funded";
 type FilterCategory = Project["category"] | "all";
 
-const SORT_OPTIONS: { value: SortOption; label: string }[] = [
-  { value: "trending", label: "Trend" },
-  { value: "newest", label: "En Yeni" },
-  { value: "ending", label: "Biten" },
-  { value: "funded", label: "En Çok Fonlanan" },
-];
+const SORT_OPTIONS: SortOption[] = ["trending", "newest", "ending", "funded"];
 
-const CATEGORIES: { value: FilterCategory; label: string }[] = [
-  { value: "all", label: "Tümü" },
-  { value: "AI/ML", label: "AI/ML" },
-  { value: "DeFi", label: "DeFi" },
-  { value: "EdTech", label: "EdTech" },
-  { value: "HealthTech", label: "HealthTech" },
-  { value: "GreenTech", label: "GreenTech" },
-  { value: "SaaS", label: "SaaS" },
-];
+const CATEGORIES: FilterCategory[] = ["all", "AI/ML", "DeFi", "EdTech", "HealthTech", "GreenTech", "SaaS"];
 
 interface ProjectGridProps {
   projects: Project[];
 }
 
 export default function ProjectGrid({ projects }: ProjectGridProps) {
+  const { t } = useI18n();
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<SortOption>("trending");
   const [category, setCategory] = useState<FilterCategory>("all");
@@ -81,7 +70,7 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Proje, kategori veya etiket ara..."
+            placeholder={t("grid.search")}
             className="flex-1 bg-transparent outline-none text-sm"
             style={{ color: "var(--color-white)" }}
           />
@@ -105,7 +94,7 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
           }}
         >
           <SlidersHorizontal size={15} />
-          Filtrele
+          {t("grid.filter")}
         </button>
       </div>
 
@@ -122,26 +111,26 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
               {/* Sort */}
               <div>
                 <p className="text-xs font-medium mb-2.5" style={{ color: "var(--color-white-dim)" }}>
-                  SIRALAMA
+                  {t("grid.sort")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {SORT_OPTIONS.map((opt) => (
                     <button
-                      key={opt.value}
-                      onClick={() => setSort(opt.value)}
+                      key={opt}
+                      onClick={() => setSort(opt)}
                       className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
                       style={{
                         background:
-                          sort === opt.value ? "var(--color-yellow)" : "var(--color-black-card)",
+                          sort === opt ? "var(--color-yellow)" : "var(--color-black-card)",
                         color:
-                          sort === opt.value ? "var(--color-black)" : "var(--color-white-muted)",
+                          sort === opt ? "var(--color-black)" : "var(--color-white-muted)",
                         border:
-                          sort === opt.value
+                          sort === opt
                             ? "1px solid var(--color-yellow)"
                             : "1px solid var(--color-black-border)",
                       }}
                     >
-                      {opt.label}
+                      {t(`sort.${opt}`)}
                     </button>
                   ))}
                 </div>
@@ -150,30 +139,30 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
               {/* Categories */}
               <div>
                 <p className="text-xs font-medium mb-2.5" style={{ color: "var(--color-white-dim)" }}>
-                  KATEGORİ
+                  {t("grid.category")}
                 </p>
                 <div className="flex gap-2 flex-wrap">
                   {CATEGORIES.map((cat) => (
                     <button
-                      key={cat.value}
-                      onClick={() => setCategory(cat.value)}
+                      key={cat}
+                      onClick={() => setCategory(cat)}
                       className="px-3.5 py-1.5 rounded-lg text-sm font-medium transition-all"
                       style={{
                         background:
-                          category === cat.value
+                          category === cat
                             ? "var(--color-black-muted)"
                             : "var(--color-black-card)",
                         color:
-                          category === cat.value
+                          category === cat
                             ? "var(--color-white)"
                             : "var(--color-white-muted)",
                         border:
-                          category === cat.value
+                          category === cat
                             ? "1px solid var(--color-white-dim)"
                             : "1px solid var(--color-black-border)",
                       }}
                     >
-                      {cat.label}
+                      {cat === "all" ? t("cat.all") : cat}
                     </button>
                   ))}
                 </div>
@@ -187,7 +176,7 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
       <div className="flex items-center justify-between mb-5">
         <p className="text-sm" style={{ color: "var(--color-white-dim)" }}>
           <span style={{ color: "var(--color-white)", fontWeight: 600 }}>{filtered.length}</span>{" "}
-          proje bulundu
+          {t("grid.found")}
         </p>
       </div>
 
@@ -209,10 +198,10 @@ export default function ProjectGrid({ projects }: ProjectGridProps) {
             className="text-xl font-bold mb-2"
             style={{ fontFamily: "var(--font-display)", color: "var(--color-white)" }}
           >
-            Proje bulunamadı
+            {t("grid.none")}
           </h3>
           <p className="text-sm" style={{ color: "var(--color-white-muted)" }}>
-            Farklı bir arama terimi veya filtre deneyin.
+            {t("grid.noneHint")}
           </p>
         </motion.div>
       )}
